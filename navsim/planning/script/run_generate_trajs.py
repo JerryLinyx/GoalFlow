@@ -127,7 +127,15 @@ def main(cfg: DictConfig) -> None:
     # val_dataloader = DataLoader(val_data, **cfg.dataloader.params, shuffle=False)
     logger.info("Num validation samples: %d", len(val_data)) 
     logger.info("Building Trainer")
-    trainer = pl.Trainer(**cfg.trainer.params,strategy=DDPStrategy(find_unused_parameters=True),)
+    # Use DDP on CUDA, fallback to CPU on non-CUDA systems
+    if torch.cuda.is_available():
+        trainer = pl.Trainer(**cfg.trainer.params,strategy=DDPStrategy(find_unused_parameters=True),)
+    else:
+        trainer_params = dict(cfg.trainer.params)
+        trainer_params['accelerator'] = 'cpu'
+        trainer_params.pop('devices', None)
+        trainer_params['precision'] = 32  # CPU doesn't support mixed precision well
+        trainer = pl.Trainer(**trainer_params)
 
 
     logger.info("Starting Testing")

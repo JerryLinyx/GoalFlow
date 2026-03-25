@@ -2,8 +2,8 @@
 # export HYDRA_FULL_ERROR=1
 
 SPLIT=test
-METRIC_CACHE="" # set your metric path 
-TRAJS_CACHE="" # set your trajectories path
+METRIC_CACHE=$NAVSIM_EXP_ROOT/metric_cache_test # set your metric path
+TRAJS_CACHE="" # set your trajectories path - will be filled after trajectory generation
 
 python $NAVSIM_DEVKIT_ROOT/navsim/planning/script/run_pdm_score_trajs.py \
 agent=goalflow_agent_traj \

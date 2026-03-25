@@ -1,0 +1,55 @@
+_target_: navsim.agents.goalflow.goalflow_agent_collision.GoalFlowCollisionAgent
+_convert_: 'all'
+
+config:
+  _target_: navsim.agents.goalflow.goalflow_config.GoalFlowConfig
+  _convert_: 'all'
+
+  topk: 1
+  generate: 'trajectory'
+  alpha: 3.0
+  fusion: False
+  beta: 0.0
+  cond_threshold: 0.0
+  score_path: null
+  use_nearest: true
+  theta: 3.0
+  cur_sampling: True
+  train_scale: 0.1
+  test_scale: 0.1
+  freeze_perception: true
+  training: true
+  has_navi: true
+  has_student_navi: false
+  start: true
+  infer_steps: 5
+  cond_weight: 1.0
+  ep_score_weight: 0.2
+  ep_point_weight: 0.0
+  anchor_size: 64
+  tf_d_model: 1024
+  voc_path: ''
+  only_perception: False
+  v99_pretrained_path: ''
+  agent_loss: True
+
+  # Adversarial collision mode
+  adv_mode: true
+  adv_agent_idx: 0
+  adv_traj_step: 8
+
+  trajectory_sampling:
+    _target_: nuplan.planning.simulation.trajectory.trajectory_sampling.TrajectorySampling
+    _convert_: 'all'
+    time_horizon: 5.5
+    interval_length: 0.5
+
+  # Loss weights — same as normal trajectory training
+  trajectory_weight: 50.0
+  navi_weight: 0.0
+  agent_class_weight: 0.2
+  agent_box_weight: 0.05
+  bev_semantic_weight: 0.2
+
+checkpoint_path: null
+lr: 1e-4

@@ -2,7 +2,7 @@
 # export CUDA_VISIBLE_DEVICES=0,5 # 1,2,3,4
 # export HYDRA_FULL_ERROR=1
 
-FEATURE_CACHE='' # set your feature_cache path
+FEATURE_CACHE=$NAVSIM_EXP_ROOT/feature_cache_test # set your feature_cache path
 VOC_PATH=$NAVSIM_DEVKIT_ROOT/data/cluster_points_8192_.npy
 CHECKPOINT_PATH=$NAVSIM_DEVKIT_ROOT/data/goalflow_traj_epoch_54-step_18260.ckpt
 GOAL_POINT_SCORES=$NAVSIM_DEVKIT_ROOT/data/goal_point_scores

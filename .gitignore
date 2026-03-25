@@ -6,9 +6,12 @@
 
 # IDE
 .vscode/*
+.idea/
 
 # Pip
 *.egg-info
+dist/
+build/
 
 # files
 *.log
@@ -17,7 +20,27 @@
 *.pcd
 *.gif
 
+# large data & outputs
 /traj_demos
 /pretrained
 /tests
 /data
+/exp
+*.ckpt
+*.pth
+*.npy
+*.gz
+*.tar
+*.tar.gz
+
+# macOS
+.DS_Store
+
+# evaluation scripts (local paths)
+run_eval_all.sh
+run_step4_after_step3.sh
+step4_log.txt
+
+# environment
+.env
+.env.local

@@ -394,14 +394,36 @@ class GoalFlowTrajModel(nn.Module):
 
             # ========================== trajectory scorer ========================================
             if self._config.use_nearest and not self._config.fusion:
-                distances=torch.norm(pred_trajs[:,:,8,:2]-navi,dim=-1)
-                scores=distances
-                if self._config.ep_score_weight>0.0:
-                    distances_norm=minmax(distances)
-                    progress=torch.norm(pred_trajs[:,:,8,:2],dim=-1)
-                    progress_norm=minmax(progress)
-                    scores=(1.-self._config.ep_score_weight)*distances_norm-self._config.ep_score_weight*progress_norm
-                min_index=torch.argmin(scores,dim=1)
+                if self._config.adv_mode:
+                    # ---- Adversarial mode: select trajectory closest to target agent ----
+                    # agent_states shape: (B, num_agents, 5) → [x, y, heading, length, width]
+                    # agents are pre-sorted by distance (nearest first) in GoalFlowTargetBuilder
+                    # agent_states lives in targets (from GoalFlowTargetBuilder)
+                    adv_agent_states = targets["agent_states"].to(
+                        dtype=pred_trajs.dtype, device=pred_trajs.device
+                    )  # (B, N, 5)
+                    adv_idx = self._config.adv_agent_idx
+                    adv_pos = adv_agent_states[:, adv_idx, :2].unsqueeze(1)    # (B, 1, 2)
+
+                    # distance from each candidate trajectory's step-adv_traj_step to the adv agent
+                    step = self._config.adv_traj_step
+                    distances = torch.norm(
+                        pred_trajs[:, :, step, :2] - adv_pos, dim=-1
+                    )  # (B, anchor_size)
+
+                    # argmin → trajectory that gets closest to the adversarial agent
+                    min_index = torch.argmin(distances, dim=1)
+                else:
+                    # ---- Normal mode: select trajectory closest to navigation goal ----
+                    distances=torch.norm(pred_trajs[:,:,8,:2]-navi,dim=-1)
+                    scores=distances
+                    if self._config.ep_score_weight>0.0:
+                        distances_norm=minmax(distances)
+                        progress=torch.norm(pred_trajs[:,:,8,:2],dim=-1)
+                        progress_norm=minmax(progress)
+                        scores=(1.-self._config.ep_score_weight)*distances_norm-self._config.ep_score_weight*progress_norm
+                    min_index=torch.argmin(scores,dim=1)
+
                 pred_trajs=pred_trajs[torch.arange(batch_size),min_index].unsqueeze(1)
 
             if self._config.start:

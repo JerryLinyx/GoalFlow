@@ -43,6 +43,15 @@ class GoalFlowConfig:
     v99_pretrained_path: str=''
     agent_loss: bool=True
 
+    # ======= Adversarial mode =======
+    # Set adv_mode=True to select trajectory that collides with target agent
+    # instead of the one closest to the navigation goal point
+    adv_mode: bool = False
+    # Index of the target agent in agent_states (0 = nearest agent)
+    adv_agent_idx: int = 0
+    # Time step to use as the target position (0-11, default=8 same as navi)
+    adv_traj_step: int = 8
+
     trajectory_sampling: TrajectorySampling = TrajectorySampling(
         time_horizon=5.5, interval_length=0.5
     )
