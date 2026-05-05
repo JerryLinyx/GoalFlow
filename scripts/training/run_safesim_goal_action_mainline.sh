@@ -105,7 +105,7 @@ rows = []
 for csv_path in sorted(root.glob("termxy_*_protocol64/metrics/global.csv")):
     with csv_path.open() as f:
         row = next(csv.DictReader(f))
-    row["tag"] = csv_path.parent.name.replace("_protocol64", "")
+    row["tag"] = csv_path.parent.parent.name.replace("_protocol64", "")
     rows.append(row)
 
 if not rows:
