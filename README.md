@@ -11,77 +11,111 @@ The root README is the entrypoint for the **current workspace state**. The origi
 
 - [docs/legacy/goalflow-original-readme.md](docs/legacy/goalflow-original-readme.md)
 
-## What Is Current
+## Current Project Focus
 
-The current SafeSim line is not a direct replay of the original paper setup. The active objective is to build and validate a corrected training pipeline for dangerous trajectory generation with:
+The active SafeSim line studies dangerous trajectory generation with:
 
-- corrected supervision and evaluation logic
 - explicit `goal_point` conditioning
-- protocol-based evaluation instead of loss-only comparison
+- protocol-based evaluation
+- structured comparison between imitation, terminal guidance, and softmin guidance
 
-The active formulation is:
+The current formulation is:
 
 ```text
 history/start state + scene context + goal_point -> trajectory
 ```
 
-not the older:
+## Training Regimes
 
-```text
-scene context -> imitate full trajectory
-```
+The repository currently contains three distinct training regimes:
+
+1. **Full training / from-scratch baseline**
+   - SafeSim Baseline
+   - trained without GoalFlow transfer
+   - used as the main non-transfer reference
+
+2. **Transfer and prior alignment**
+   - Stage1 Prior Alignment
+   - initializes from transferred GoalFlow-compatible weights
+   - aligns the model on `original` data before dangerous fine-tuning
+
+3. **Corrected fine-tuning mainline**
+   - Goal-conditioned Pure Imitation
+   - Goal-conditioned Terminal Ablation
+   - Goal-conditioned Softmin Ablation
+   - these are the current fine-tuning experiments and the main source of the latest results
 
 ## Experiment Snapshot Table
 
-The table below tracks only the experiment lines that are still relevant to the
-current workspace. Historical lines invalidated by the old
-`nearest_action_sample` supervision bug are intentionally excluded from the main
-table and kept in the archive.
+The table below tracks the main experiment scenarios that summarize the current
+project state.
 
 | Scenario | Role | Supervision | Goal Point | Status | dangerous_hit_rate | hit@2m | pred_min_dist | Notes |
 |---|---|---|---|---|---:|---:|---:|---|
-| SafeSim Baseline | historical reference | legacy baseline line | no explicit goal token | evaluated (historical reference) | 0.2812 | 0.1562 | 12.9143 | Reference-only snapshot from earlier proxy eval |
-| Stage1 Prior Alignment | transfer reference | `raw_gt` on `original` | no explicit goal token | evaluated (historical reference) | 0.2188 | 0.0781 | 13.4077 | Shows transferred prior before corrected Stage2 |
-| Goal-conditioned Pure Imitation | current valid baseline | `action` | explicit `goal_point` | evaluated | 0.4219 | 0.3125 | 9.6171 | Corrected baseline after bug fixes; `gate_pass=False` |
-| Goal-conditioned Terminal Ablation | current valid ablation | `action` | explicit `goal_point` | evaluated | 0.4688 | 0.3125 | 9.2413 | Best terminal-only variant is `xy=0.25, heading=0.05`; `gate_pass=False` |
-| Goal-conditioned Softmin Ablation | current valid ablation | `action` | explicit `goal_point` | evaluated | 0.5156 | 0.3438 | 4.6922 | Best corrected softmin variant is `softmin=0.0025`; `gate_pass=False` |
+| SafeSim Baseline | full-training reference | legacy baseline line | no explicit goal token | evaluated | 0.2812 | 0.1562 | 12.9143 | historical qualitative anchor |
+| Stage1 Prior Alignment | transfer reference | `raw_gt` on `original` | no explicit goal token | evaluated | 0.2188 | 0.0781 | 13.4077 | transfer + prior-alignment stage before fine-tuning |
+| Goal-conditioned Pure Imitation | fine-tuning baseline | `action` | explicit `goal_point` | evaluated | 0.4219 | 0.3125 | 9.6171 | corrected fine-tuning baseline |
+| Goal-conditioned Terminal Ablation | fine-tuning ablation | `action` | explicit `goal_point` | evaluated | 0.4688 | 0.3125 | 9.2413 | best terminal-only is `xy=0.25, heading=0.05` |
+| Goal-conditioned Softmin Ablation | fine-tuning ablation | `action` | explicit `goal_point` | evaluated | 0.5156 | 0.3438 | 4.6922 | best softmin is `0.0025` |
 
-## Current Status
+## Checkpoints and Artifacts
 
-This workspace already includes:
+For reproducibility and result inspection, use the shareable checkpoint bundle:
 
-- the root-cause fix for the broken `nearest_action_sample` supervision path
-- corrected candidate selection during inference/evaluation
-- explicit `goal_point` conditioning in the SafeSim line
-- a completed **goal-conditioned pure imitation** training baseline
-- reorganized documentation with active vs archived separation
+- [goalflow_safesim_checkpoints_20260505.zip](https://drive.google.com/file/d/1FRYlWvijY_QJUC8Bcm4n8JTSROpBVJW-/view?usp=drive_link)
 
-The corrected goal-conditioned mainline has now completed:
+Artifact-to-scenario mapping inside the bundle:
 
-- formal evaluation of the corrected pure imitation baseline
-- formal evaluation and selection of the goal-conditioned `terminal` sweep
-- follow-up small `softmin` sweep on the selected terminal base
+| Folder in zip | Scenario in this README | What it contains |
+|---|---|---|
+| `baseline/` | SafeSim Baseline | from-scratch baseline checkpoint and evaluation summary |
+| `stage1/` | Stage1 Prior Alignment | transfer/prior-alignment checkpoint used before fine-tuning |
+| `pure_imitation_goal_action/` | Goal-conditioned Pure Imitation | corrected pure imitation checkpoint and formal evaluation summary |
+| `best_terminal_only/` | Goal-conditioned Terminal Ablation | best terminal-only checkpoint (`terminal_xy=0.25`, `terminal_heading=0.05`) and formal evaluation summary |
+| `best_softmin/` | Goal-conditioned Softmin Ablation | best softmin checkpoint (`softmin=0.0025` on the best terminal base) and formal evaluation summary |
 
-The current limitation is no longer missing experiments. It is model quality:
+The bundle also includes a top-level `MANIFEST.md` with the same mapping.
 
-- the corrected mainline improves dangerous-task metrics
-- but every currently evaluated combination still fails the protocol gates, mainly on `offroad_rate` and/or motion plausibility
+## Current Takeaway
 
-This means the repository is currently in a good state for:
+The current corrected mainline is complete:
 
-- code review
-- documentation review
-- experiment resumption
+- goal-conditioned pure imitation
+- terminal sweep
+- softmin sweep
+- protocol-based evaluation for all current valid runs
 
-but not yet for claiming final model conclusions.
+## Conclusions and Tradeoffs
+
+- **Best dangerous-task result:** Goal-conditioned softmin ablation (`softmin = 0.0025` on top of the best terminal base) gives the strongest dangerous metrics:
+  - `dangerous_hit_rate = 0.5156`
+  - `hit@2m = 0.3438`
+  - `pred_min_dist = 4.6922`
+- **Best terminal-only result:** `terminal_xy = 0.25`, `terminal_heading = 0.05` is the strongest terminal-only variant:
+  - `dangerous_hit_rate = 0.4688`
+  - `pred_min_dist = 9.2413`
+- **Best baseline for controlled comparison:** goal-conditioned pure imitation is the clean corrected baseline:
+  - `dangerous_hit_rate = 0.4219`
+  - `pred_min_dist = 9.6171`
+
+Main tradeoff:
+
+- adding `terminal` improves dangerous-task success over pure imitation, but increases motion aggressiveness
+- adding small `softmin` improves dangerous-task success further, but pushes trajectories farther toward off-road and high-jerk behavior
+- therefore, **softmin is best if the objective is danger maximization**, while **pure imitation / terminal-only are better if the objective is a more conservative balance**
+
+The current practical takeaway is:
+
+- **best overall by dangerous metrics:** goal-conditioned softmin (`0.0025`)
+- **best balanced intermediate point:** terminal-only (`0.25 / 0.05`)
 
 ## Read First
 
-1. Current experiment index  
-   [docs/reports/2026-05-04-safesim-experiment-index.md](docs/reports/2026-05-04-safesim-experiment-index.md)
-
-2. Current evaluation protocol  
+1. Current evaluation protocol  
    [docs/metrics/safesim-dangerous-metrics-v1.md](docs/metrics/safesim-dangerous-metrics-v1.md)
+
+2. Current experiment index  
+   [docs/reports/2026-05-04-safesim-experiment-index.md](docs/reports/2026-05-04-safesim-experiment-index.md)
 
 3. General docs index  
    [docs/README.md](docs/README.md)
@@ -91,12 +125,9 @@ but not yet for claiming final model conclusions.
    [docs/train.md](docs/train.md)  
    [docs/test.md](docs/test.md)
 
-5. Historical SafeSim archive  
-   [docs/archive/README.md](docs/archive/README.md)
+## Main Experiment Lines
 
-## Effective Experiment Lines
-
-Only the lines below should be treated as current and technically valid.
+These are the main experiment lines for the current SafeSim workspace.
 
 | Experiment | Purpose | Status | Entry |
 |---|---|---|---|
@@ -106,11 +137,8 @@ Only the lines below should be treated as current and technically valid.
 | Goal-conditioned softmin sweep | Small-weight sweep on the selected corrected terminal base | Trained and evaluated | [scripts/training/run_safesim_stage2_softmin_sweep.sh](scripts/training/run_safesim_stage2_softmin_sweep.sh) |
 | Goal-action mainline orchestrator | Finish terminal sweep, run evaluation, choose terminal base, launch softmin sweep | Completed | [scripts/training/run_safesim_goal_action_mainline.sh](scripts/training/run_safesim_goal_action_mainline.sh) |
 
-## Invalidated Historical Experiments
-
-Older Stage 2 ablations based on `target_policy=nearest_action_sample` should not be used as final evidence. They remain useful only as debugging history because the corresponding `action_sample_positions / yaws` in the current filtered data were found to be invalid.
-
-Use the archive and experiment index for those details instead of treating them as live results.
+Historical and superseded experiments are still available in the archive and
+experiment index, but they are not the focus of this README.
 
 ## Scenario Sections
 
@@ -122,17 +150,15 @@ This section is the paper-era reference point for the repository.
 
 ### Scenario 1: SafeSim baseline reference
 
-This is a historical from-scratch SafeSim reference. It is kept in the README
-because it remains useful as a qualitative anchor, but it is not the active
-mainline experiment.
+This is a historical from-scratch SafeSim reference kept as a qualitative
+anchor.
 
 ![SafeSim baseline reference](assets/safesim_current/baseline_proxy64_examples.png)
 
 ### Scenario 2: Stage1 prior-alignment reference
 
-This section shows the transferred SafeSim model before corrected Stage2
-ablation. It is useful for understanding the starting prior before the new
-goal-conditioned fine-tuning line.
+This section shows the transferred SafeSim model before corrected Stage2 and
+serves as the main transfer reference.
 
 ![Stage1 prior alignment reference](assets/safesim_current/stage1_proxy64_examples.png)
 
@@ -145,8 +171,7 @@ This is the first corrected baseline under:
 - no `terminal`
 - no `softmin`
 
-This section is now fully evaluated and serves as the corrected baseline that
-all new ablations must be compared against.
+This is the corrected baseline that the new ablations are compared against.
 
 ![Goal-conditioned pure imitation](assets/safesim_current/pure_imitation_goal_action_examples.png)
 
@@ -157,8 +182,7 @@ This family is now fully evaluated. The best terminal-only variant is:
 - `terminal_xy = 0.25`
 - `terminal_heading = 0.05`
 
-It improves dangerous-task metrics over corrected pure imitation, but still
-fails the protocol gate because physical plausibility remains weak.
+It improves dangerous-task metrics over corrected pure imitation.
 
 ![Best corrected terminal-only examples](assets/safesim_current/terminal_goal_action_best_examples.png)
 
@@ -170,11 +194,22 @@ This family is now fully evaluated. The best corrected softmin variant is:
 - base terminal: `terminal_xy = 0.25`, `terminal_heading = 0.05`
 - `softmin = 0.0025`
 
-This is the strongest dangerous-task result on the corrected mainline, but it
-still fails the protocol gate, mainly because the trajectory remains too
-aggressive and off-road too often.
+This is the strongest dangerous-task result on the corrected mainline.
 
 ![Best corrected softmin examples](assets/safesim_current/softmin_goal_action_best_examples.png)
+
+## Current Result Files
+
+The latest corrected mainline outputs are organized under:
+
+- pure imitation:
+  [outputs/current_goal_action/pure_imitation_protocol64](/Users/linyuxuan/workSpace/GoalFlow/outputs/current_goal_action/pure_imitation_protocol64)
+- terminal sweep:
+  [outputs/current_goal_action/terminal_eval](/Users/linyuxuan/workSpace/GoalFlow/outputs/current_goal_action/terminal_eval)
+- softmin sweep:
+  [outputs/current_goal_action/softmin_eval](/Users/linyuxuan/workSpace/GoalFlow/outputs/current_goal_action/softmin_eval)
+
+These are the authoritative result directories for the corrected goal-conditioned line.
 
 ## Main Code Entry Points
 
@@ -200,27 +235,6 @@ Formal comparison should use the protocol evaluator, not training loss alone.
 - Main evaluator: [scripts/analysis/evaluate_safesim_dangerous.py](scripts/analysis/evaluate_safesim_dangerous.py)
 - Terminal sweep evaluation: [scripts/analysis/run_safesim_terminal_sweep_eval.sh](scripts/analysis/run_safesim_terminal_sweep_eval.sh)
 - Softmin sweep evaluation: [scripts/analysis/run_safesim_softmin_sweep_eval.sh](scripts/analysis/run_safesim_softmin_sweep_eval.sh)
-
-## Large Artifacts Kept Out of Git
-
-Large experiment artifacts are intentionally ignored by `.gitignore` and should
-be shared through cloud storage or a lab file server instead of this Git
-repository.
-
-Recommended external-share items:
-
-- [safesim_logs_stage1](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage1) (`~1.6G`)
-- [safesim_logs_cfg_base](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_cfg_base) (`~1.4G`)
-- [safesim_logs_stage2_action_goal_imitation](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_action_goal_imitation) (`~1.7G`)
-- [safesim_logs_stage2_terminal_sweep_goal_action](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_terminal_sweep_goal_action) (`~75G`, current largest directory)
-
-Recommended to commit:
-
-- code under [navsim/agents/goalflow](/Users/linyuxuan/workSpace/GoalFlow/navsim/agents/goalflow)
-- lightweight helper code under [navsim/safesim](/Users/linyuxuan/workSpace/GoalFlow/navsim/safesim)
-- scripts under [scripts/analysis](/Users/linyuxuan/workSpace/GoalFlow/scripts/analysis) and [scripts/training](/Users/linyuxuan/workSpace/GoalFlow/scripts/training)
-- tests under [tests](/Users/linyuxuan/workSpace/GoalFlow/tests)
-- small README assets under [assets/safesim_current](/Users/linyuxuan/workSpace/GoalFlow/assets/safesim_current)
 
 ## Environment
 

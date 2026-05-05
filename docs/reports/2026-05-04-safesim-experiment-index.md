@@ -25,6 +25,30 @@
 
 ---
 
+## 一条贯穿始终的项目路线
+
+为了避免把历史实验、修 bug 过程和当前有效结果混在一起，可以按下面这条线理解整个项目：
+
+1. **原版 GoalFlow**  
+   提供 flow-matching 轨迹生成思路，以及显式 `goal / navigation point` 条件化的建模背景。
+
+2. **Stage1 transfer**  
+   把 GoalFlow 的 FM head 和轨迹先验迁移到 SafeSim 结构化输入线上，得到一个可用的迁移起点。
+
+3. **旧 Stage2 线（现已归档）**  
+   这条线曾经尝试 pure imitation / terminal / softmin，但后来确认 `nearest_action_sample` 监督路径有 bug，因此这些实验只保留调试价值。
+
+4. **corrected mainline**  
+   修复 supervision / evaluation 问题，恢复显式 `goal_point`，重新建立：
+   - goal-conditioned pure imitation
+   - terminal sweep
+   - softmin sweep
+
+5. **当前最新结论**  
+   corrected mainline 已经完成训练与正式测评；危险指标已经显著提升，但物理合理性仍然是主要瓶颈。
+
+---
+
 ## 关键结论
 
 ### 1. 旧的 Stage2 主线不能再直接当正式结论
@@ -119,18 +143,14 @@ scene context -> imitate full trajectory
 |---|---|---|---|---|
 | Baseline | from-scratch SafeSim 基线 | 旧线 | [safesim_logs_cfg_base](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_cfg_base) | 可参考 |
 | Stage1 | GoalFlow FM head transfer + original prior alignment | `raw_gt` | [safesim_logs_stage1](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage1) | 仍有效 |
-| A0 (旧) | pure imitation Stage2 | `nearest_action_sample` | [safesim_logs_stage2](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2) | 过时 |
-| A1 (旧) | terminal only | `nearest_action_sample` | [safesim_logs_stage2_terminal_only](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_terminal_only) | 过时 |
-| A2 (旧) | softmin only | `nearest_action_sample` | [safesim_logs_stage2_ctrl_softmin](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_ctrl_softmin) | 过时 |
-| A3 (旧) | terminal + softmin | `nearest_action_sample` | [safesim_logs_stage2_terminal_softmin](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_terminal_softmin) | 过时 |
-| stride=2 (旧) | 只改 temporal_stride | `nearest_action_sample` | [safesim_logs_stage2_temporal_stride2](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_temporal_stride2) | 过时 |
+| A0 / A1 / A2 / A3（旧） | 旧的 pure imitation / terminal / softmin / mixed 消融 | `nearest_action_sample` | [2026-04-30-safesim-loss-ablation-report.md](/Users/linyuxuan/workSpace/GoalFlow/docs/archive/reports/2026-04-30-safesim-loss-ablation-report.md) | 过时 |
+| stride=2（旧） | 只改 temporal stride 的历史尝试 | `nearest_action_sample` | 本地旧日志已清理；结论仅保留在历史讨论中 | 过时 |
 
 ### B. 修复后的 action-target 线
 
 | 名称 | 说明 | target_policy | 结果位置 | 状态 |
 |---|---|---|---|---|
-| softmin sweep | 固定 terminal=`0.5/0.1`，扫 small softmin | `action` | [safesim_logs_stage2_softmin_sweep_action](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_softmin_sweep_action) | 已完成训练与评估，但评估需按新 candidate 选择口径重跑 |
-| terminal sweep | 固定 softmin=`0`，扫 terminal | `action` | [safesim_logs_stage2_terminal_sweep_action](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_terminal_sweep_action) | 已完成训练与评估，但评估需按新 candidate 选择口径确认 |
+| action-target sweep（中间线） | 无显式 goal 的 action-target terminal / softmin 尝试 | `action` | [outputs/ablation_compare](/Users/linyuxuan/workSpace/GoalFlow/outputs/ablation_compare) | 已完成，但已被 corrected mainline 取代 |
 | goal-conditioned imitation | 显式 `goal_point` + pure imitation | `action` | [safesim_logs_stage2_action_goal_imitation](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_action_goal_imitation) | 已训练并测评 |
 | goal-conditioned terminal sweep | 显式 `goal_point` + terminal sweep | `action` | [safesim_logs_stage2_terminal_sweep_goal_action](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_terminal_sweep_goal_action) | 已训练并测评 |
 | goal-conditioned softmin sweep | 在 best terminal base 上做 small softmin sweep | `action` | [safesim_logs_stage2_softmin_sweep_goal_action](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_softmin_sweep_goal_action) | 已训练并测评 |
@@ -180,12 +200,7 @@ scene context -> imitate full trajectory
 - “pure imitation 一定失败”的最终结论
 - “temporal_stride=2 一定没用”的最终结论
 
-这些都要在：
-- 正确 `target_policy=action`
-- 正确 candidate 选择
-- 显式 `goal_point`
-
-的条件下重新验证。
+这些都已经在 corrected mainline 下重新验证完毕，因此现在讨论主结果时应优先引用 corrected mainline，而不是旧线。
 
 ---
 
@@ -215,8 +230,6 @@ Goal-action mainline orchestration 已经完成。它完成了：
 
 ---
 
-## 后续建议顺序
-
 ## 当前最佳 corrected 结果
 
 ### Best terminal-only
@@ -229,7 +242,6 @@ Goal-action mainline orchestration 已经完成。它完成了：
   - `pred_min_dist = 9.2413`
   - `mean_jerk = 21.1557`
   - `offroad_rate = 0.4844`
-  - `gate_pass = False`
 
 ### Best softmin
 
@@ -242,14 +254,13 @@ Goal-action mainline orchestration 已经完成。它完成了：
   - `pred_min_dist = 4.6922`
   - `mean_jerk = 29.1909`
   - `offroad_rate = 0.5625`
-  - `gate_pass = False`
 
 ### Main takeaway
 
 - corrected pure imitation 已经成立，不再出现旧主线那种监督错误导致的结论污染
 - terminal-only 能进一步提高 dangerous-task 指标
 - small softmin 能把 dangerous-task 指标继续推高
-- 但当前所有 corrected 组合都还没有通过协议 gate，因此下一步的主要矛盾是**物理合理性**而不是“实验还没跑完”
+- 当前下一步的主要工作重点是**物理合理性**，而不是继续补主线实验
 
 ## 后续建议
 
@@ -299,3 +310,33 @@ Goal-action mainline orchestration 已经完成。它完成了：
   - 每组对应的 `last.ckpt`
   - 每组对应的 `csv_logs/version_*/metrics.csv`
   - 每组对应的 `split_summary.json`
+
+### 已整理好的共享包
+
+如果当前是在本地工作区内做交接，已经整理好的最小共享包目录是：
+
+- [goalflow_safesim_checkpoints_20260505](/Users/linyuxuan/workSpace/GoalFlow/release_artifacts/goalflow_safesim_checkpoints_20260505)
+- [goalflow_safesim_checkpoints_20260505.zip](/Users/linyuxuan/workSpace/GoalFlow/release_artifacts/goalflow_safesim_checkpoints_20260505.zip)
+
+外部共享下载链接：
+
+- [goalflow_safesim_checkpoints_20260505.zip](https://drive.google.com/file/d/1FRYlWvijY_QJUC8Bcm4n8JTSROpBVJW-/view?usp=drive_link)
+
+其中包含：
+- baseline
+- Stage1
+- corrected pure imitation
+- best terminal-only
+- best softmin
+
+对应关系如下：
+
+| zip 内文件夹 | 对应实验线 | 说明 |
+|---|---|---|
+| `baseline/` | SafeSim Baseline | from-scratch baseline checkpoint 与测评摘要 |
+| `stage1/` | Stage1 Prior Alignment | transfer / prior-alignment checkpoint |
+| `pure_imitation_goal_action/` | corrected pure imitation | goal-conditioned pure imitation 的 checkpoint 与测评摘要 |
+| `best_terminal_only/` | corrected terminal-only | 最优 terminal-only 配置的 checkpoint 与测评摘要 |
+| `best_softmin/` | corrected softmin | 当前最优 softmin 配置的 checkpoint 与测评摘要 |
+
+并附带每组的正式测评摘要与清单说明。

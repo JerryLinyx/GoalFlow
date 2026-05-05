@@ -81,7 +81,7 @@ Bias control:
 
 - baseline log dir: `safesim_logs_ab_history_baseline`
 - variant log dir: `safesim_logs_ab_history_5hz`
-- comparison summary: `outputs/history_ab/summary.md`
+- comparison summary: historical workspace output was cleaned during repository cleanup; the key metrics are preserved directly in this archived note below
 
 ## Result Notes
 
@@ -123,9 +123,8 @@ Best-metric comparison:
 - prioritize explicit `ego-ctrl` interaction modeling and decoder access to richer scene tokens before revisiting higher-frequency history
 - rerun the history ablation only after stronger interaction modeling is in place and with multi-seed evaluation
 
-Detailed run summary is available at:
-
-- [outputs/history_ab/summary.md](/Users/linyuxuan/workSpace/GoalFlow/outputs/history_ab/summary.md)
+The detailed per-run output file was removed during later workspace cleanup.
+The decision-relevant metrics are preserved in this archived note.
 
 Follow-on architecture decision:
 

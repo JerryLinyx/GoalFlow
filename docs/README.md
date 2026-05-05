@@ -12,6 +12,17 @@ historical material.
 - Current evaluation protocol:
   [safesim-dangerous-metrics-v1.md](/Users/linyuxuan/workSpace/GoalFlow/docs/metrics/safesim-dangerous-metrics-v1.md)
 
+## Recommended route
+
+If you want the latest technically valid story of the project:
+
+1. start with the root [README.md](/Users/linyuxuan/workSpace/GoalFlow/README.md)
+2. then read the current experiment index  
+   [2026-05-04-safesim-experiment-index.md](/Users/linyuxuan/workSpace/GoalFlow/docs/reports/2026-05-04-safesim-experiment-index.md)
+3. then read the protocol  
+   [safesim-dangerous-metrics-v1.md](/Users/linyuxuan/workSpace/GoalFlow/docs/metrics/safesim-dangerous-metrics-v1.md)
+4. only then enter [docs/archive/README.md](/Users/linyuxuan/workSpace/GoalFlow/docs/archive/README.md) for superseded experiments
+
 ## Active documents
 
 - Installation:
@@ -32,3 +43,4 @@ historical material.
 - Original GoalFlow README:
   [goalflow-original-readme.md](/Users/linyuxuan/workSpace/GoalFlow/docs/legacy/goalflow-original-readme.md)
 
+The archive is intentionally not the source of truth for current results.

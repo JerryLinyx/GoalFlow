@@ -11,75 +11,111 @@
 
 - [docs/legacy/goalflow-original-readme.md](docs/legacy/goalflow-original-readme.md)
 
-## 当前主线是什么
+## 当前项目重点
 
-当前 SafeSim 主线不是简单复现原版论文，而是在做一条经过修正的危险轨迹生成实验链，重点包括：
+当前 SafeSim 主线聚焦于危险轨迹生成，核心要素包括：
 
-- 修复监督和评估逻辑中的关键问题
-- 恢复显式 `goal_point` 条件
-- 用正式协议评估，而不是只看训练 `loss`
+- 显式 `goal_point` 条件
+- 正式协议测评
+- imitation、terminal、softmin 三类方法的结构化比较
 
-当前有效的训练形式是：
+当前使用的训练形式是：
 
 ```text
 history/start state + scene context + goal_point -> trajectory
 ```
 
-而不是较早那条：
+## 训练形态
 
-```text
-scene context -> imitate full trajectory
-```
+当前仓库里实际上有三种训练形态：
+
+1. **全量训练 / from-scratch baseline**
+   - SafeSim Baseline
+   - 不使用 GoalFlow transfer
+   - 作为主要的非迁移参考组
+
+2. **迁移 + 先验对齐**
+   - Stage1 Prior Alignment
+   - 从可迁移的 GoalFlow 权重出发
+   - 先在 `original` 数据上恢复轨迹先验，再进入后续微调
+
+3. **修正后的微调主线**
+   - Goal-conditioned Pure Imitation
+   - Goal-conditioned Terminal Ablation
+   - Goal-conditioned Softmin Ablation
+   - 这些实验共同构成当前的 fine-tuning 主线，也是最新结果的主要来源
 
 ## 实验总表
 
-下面这张总表只跟踪**当前仍然相关**的实验线。那些被旧
-`nearest_action_sample` 监督 bug 污染的历史实验，不再放进主表，而是保存在归档里。
+下面这张总表只展示当前项目状态里最重要的几条实验线。
 
 | Scenario | 角色 | 监督 | Goal Point | 状态 | dangerous_hit_rate | hit@2m | pred_min_dist | 说明 |
 |---|---|---|---|---|---:|---:|---:|---|
-| SafeSim Baseline | 历史参考 | 旧 baseline 训练线 | 无显式 goal token | 已评估（历史参考） | 0.2812 | 0.1562 | 12.9143 | 早期 proxy 评估留下的参考快照 |
-| Stage1 Prior Alignment | transfer 参考 | `raw_gt` on `original` | 无显式 goal token | 已评估（历史参考） | 0.2188 | 0.0781 | 13.4077 | 展示 corrected Stage2 之前的迁移先验 |
-| Goal-conditioned Pure Imitation | 当前有效 baseline | `action` | 显式 `goal_point` | 已完成正式测评 | 0.4219 | 0.3125 | 9.6171 | bug 修复后的干净 baseline；`gate_pass=False` |
-| Goal-conditioned Terminal Ablation | 当前有效 ablation | `action` | 显式 `goal_point` | 已完成正式测评 | 0.4688 | 0.3125 | 9.2413 | 最优 terminal-only 为 `xy=0.25, heading=0.05`；`gate_pass=False` |
-| Goal-conditioned Softmin Ablation | 当前有效 ablation | `action` | 显式 `goal_point` | 已完成正式测评 | 0.5156 | 0.3438 | 4.6922 | 最优 corrected softmin 为 `0.0025`；`gate_pass=False` |
+| SafeSim Baseline | 全量训练参考组 | 旧 baseline 训练线 | 无显式 goal token | 已评估 | 0.2812 | 0.1562 | 12.9143 | 历史上的定性参照 |
+| Stage1 Prior Alignment | 迁移参考组 | `raw_gt` on `original` | 无显式 goal token | 已评估 | 0.2188 | 0.0781 | 13.4077 | corrected Stage2 之前的迁移 + 先验对齐阶段 |
+| Goal-conditioned Pure Imitation | 微调 baseline | `action` | 显式 `goal_point` | 已完成正式测评 | 0.4219 | 0.3125 | 9.6171 | 当前 corrected fine-tuning baseline |
+| Goal-conditioned Terminal Ablation | 微调 ablation | `action` | 显式 `goal_point` | 已完成正式测评 | 0.4688 | 0.3125 | 9.2413 | 最优 terminal-only 为 `xy=0.25, heading=0.05` |
+| Goal-conditioned Softmin Ablation | 微调 ablation | `action` | 显式 `goal_point` | 已完成正式测评 | 0.5156 | 0.3438 | 4.6922 | 最优 softmin 为 `0.0025` |
 
-## 当前进展
+## Checkpoint 与实验产物
 
-目前已经完成：
+要复现实验或检查结果，直接使用下面这个共享 checkpoint 包：
 
-- `nearest_action_sample` 旧监督问题的定位与修复
-- 推理/评估阶段 candidate 选择逻辑修复
-- SafeSim 主线中的显式 `goal_point` 条件接入
-- **goal-conditioned pure imitation** baseline 训练完成
-- 文档与历史材料分层归档
+- [goalflow_safesim_checkpoints_20260505.zip](https://drive.google.com/file/d/1FRYlWvijY_QJUC8Bcm4n8JTSROpBVJW-/view?usp=drive_link)
 
-当前 corrected goal-conditioned mainline 已经全部跑完：
+zip 包内文件夹与 scenario 的对应关系：
 
-- 修复后 pure imitation baseline 的正式协议评估
-- 新版 goal-conditioned `terminal` 消融的正式评估与 base 选择
-- 在选定 terminal base 之后的新 `softmin` sweep 及其正式评估
+| zip 内文件夹 | 对应的 scenario | 内容 |
+|---|---|---|
+| `baseline/` | SafeSim Baseline | from-scratch baseline checkpoint 与正式测评摘要 |
+| `stage1/` | Stage1 Prior Alignment | transfer / prior-alignment checkpoint，用于后续微调初始化 |
+| `pure_imitation_goal_action/` | Goal-conditioned Pure Imitation | corrected pure imitation checkpoint 与正式测评摘要 |
+| `best_terminal_only/` | Goal-conditioned Terminal Ablation | 最优 terminal-only checkpoint（`terminal_xy=0.25`, `terminal_heading=0.05`）与正式测评摘要 |
+| `best_softmin/` | Goal-conditioned Softmin Ablation | 最优 softmin checkpoint（基于最佳 terminal base，`softmin=0.0025`）与正式测评摘要 |
 
-当前剩下的主要问题不再是“实验没跑完”，而是模型质量：
+zip 顶层还包含一个 `MANIFEST.md`，对这些对应关系做了同样说明。
 
-- corrected mainline 的危险指标已经明显提升
-- 但所有当前组合都还没有通过协议 gate，主要卡在 `offroad_rate` 和运动合理性
+## 当前结论
 
-因此，当前仓库已经适合：
+当前 corrected mainline 已经完整跑通，包括：
 
-- 做代码审阅
-- 做文档审阅
-- 恢复后续实验
+- goal-conditioned pure imitation
+- terminal sweep
+- softmin sweep
+- 所有当前有效实验的正式协议测评
 
-但还不适合拿来宣称最终实验结论。
+## 结论与 Tradeoff
+
+- **危险指标最强的方案：** Goal-conditioned softmin ablation  
+  在最佳 terminal base 上取 `softmin = 0.0025` 时，当前主线取得了最强的危险指标：
+  - `dangerous_hit_rate = 0.5156`
+  - `hit@2m = 0.3438`
+  - `pred_min_dist = 4.6922`
+- **最佳 terminal-only：** `terminal_xy = 0.25`, `terminal_heading = 0.05`
+  - `dangerous_hit_rate = 0.4688`
+  - `pred_min_dist = 9.2413`
+- **最干净的 corrected baseline：** goal-conditioned pure imitation
+  - `dangerous_hit_rate = 0.4219`
+  - `pred_min_dist = 9.6171`
+
+当前最核心的 tradeoff 是：
+
+- 加 `terminal` 后，危险指标相对 pure imitation 会提升，但轨迹也会更激进
+- 再加小权重 `softmin` 后，危险指标还能继续提升，但 off-road 和 jerk 问题会进一步加重
+- 因此，**如果只看危险任务指标，softmin 是当前最优；如果看更保守、更平衡的中间方案，terminal-only 更合适**
+
+目前最直接的项目结论是：
+
+- **按危险指标排名的最优方案：** goal-conditioned softmin (`0.0025`)
+- **当前最平衡的中间点：** terminal-only (`0.25 / 0.05`)
 
 ## 建议阅读顺序
 
-1. 当前实验总索引  
-   [docs/reports/2026-05-04-safesim-experiment-index.md](docs/reports/2026-05-04-safesim-experiment-index.md)
-
-2. 当前测评协议  
+1. 当前测评协议  
    [docs/metrics/safesim-dangerous-metrics-v1.md](docs/metrics/safesim-dangerous-metrics-v1.md)
+
+2. 当前实验总索引  
+   [docs/reports/2026-05-04-safesim-experiment-index.md](docs/reports/2026-05-04-safesim-experiment-index.md)
 
 3. 文档总索引  
    [docs/README.md](docs/README.md)
@@ -89,12 +125,9 @@ scene context -> imitate full trajectory
    [docs/train.md](docs/train.md)  
    [docs/test.md](docs/test.md)
 
-5. 历史 SafeSim 归档  
-   [docs/archive/README.md](docs/archive/README.md)
+## 当前主要实验线
 
-## 当前有效实验线
-
-只有下面这些实验线应该被视为当前仍然有效、值得继续推进的主线。
+下面这些实验线构成了当前 SafeSim 主线。
 
 | 实验 | 作用 | 状态 | 入口 |
 |---|---|---|---|
@@ -104,11 +137,7 @@ scene context -> imitate full trajectory
 | Goal-conditioned softmin sweep | 在选定 terminal base 后进行 small softmin 扫描 | 已训练并测评 | [scripts/training/run_safesim_stage2_softmin_sweep.sh](scripts/training/run_safesim_stage2_softmin_sweep.sh) |
 | Goal-action mainline orchestrator | 跑完 terminal、完成评估、选 terminal base、启动 softmin sweep | 已完成 | [scripts/training/run_safesim_goal_action_mainline.sh](scripts/training/run_safesim_goal_action_mainline.sh) |
 
-## 已失效的历史实验
-
-旧的 Stage 2 消融如果建立在 `target_policy=nearest_action_sample` 上，就不能再作为正式结论，因为当前 `filtered` 数据中的 `action_sample_positions / yaws` 已被确认是无效的。
-
-这些实验仍然保留调试和诊断价值，但不应再作为主结果使用。具体请看实验总索引和归档文档。
+更详细的发展过程和历史实验放在实验总索引与归档中，不在这份 README 里展开。
 
 ## 各 Scenario 分节
 
@@ -120,13 +149,13 @@ scene context -> imitate full trajectory
 
 ### Scenario 1: SafeSim baseline reference
 
-这是一个历史上的 from-scratch SafeSim 参考组。它仍然值得保留在 README 中，作为定性的对照锚点，但不是当前正在推进的主线。
+这是历史上的 from-scratch SafeSim 参考组，保留在这里作为定性的对照锚点。
 
 ![SafeSim baseline reference](assets/safesim_current/baseline_proxy64_examples.png)
 
 ### Scenario 2: Stage1 prior-alignment reference
 
-这一节展示的是 corrected Stage2 之前、迁移完成后的先验状态。它的价值在于帮助理解新版微调是从什么轨迹先验出发的。
+这一节展示 corrected Stage2 之前、迁移完成后的先验状态。
 
 ![Stage1 prior alignment reference](assets/safesim_current/stage1_proxy64_examples.png)
 
@@ -139,7 +168,7 @@ scene context -> imitate full trajectory
 - 不加 `terminal`
 - 不加 `softmin`
 
-它的训练和正式协议测评都已经完成，是当前 corrected mainline 的基线。
+它是当前 corrected mainline 的基线。
 
 ![Goal-conditioned pure imitation](assets/safesim_current/pure_imitation_goal_action_examples.png)
 
@@ -150,11 +179,9 @@ scene context -> imitate full trajectory
 - `terminal_xy = 0.25`
 - `terminal_heading = 0.05`
 
-它比 corrected pure imitation 有更高的危险指标，但仍然没有通过协议 gate。
+它比 corrected pure imitation 有更高的危险指标。
 
 ![Best corrected terminal-only examples](assets/safesim_current/terminal_goal_action_best_examples.png)
-
-![Current terminal sweep board](assets/safesim_current/terminal_sweep_board.png)
 
 ### Scenario 5: Goal-conditioned softmin ablation
 
@@ -163,9 +190,22 @@ scene context -> imitate full trajectory
 - terminal base: `terminal_xy = 0.25`, `terminal_heading = 0.05`
 - `softmin = 0.0025`
 
-这是 corrected mainline 里危险性最强的一组，但依旧没有通过协议 gate。
+这是 corrected mainline 里危险性最强的一组。
 
 ![Best corrected softmin examples](assets/safesim_current/softmin_goal_action_best_examples.png)
+
+## 当前结果目录
+
+最新 corrected mainline 的正式结果统一放在：
+
+- pure imitation：
+  [outputs/current_goal_action/pure_imitation_protocol64](/Users/linyuxuan/workSpace/GoalFlow/outputs/current_goal_action/pure_imitation_protocol64)
+- terminal sweep：
+  [outputs/current_goal_action/terminal_eval](/Users/linyuxuan/workSpace/GoalFlow/outputs/current_goal_action/terminal_eval)
+- softmin sweep：
+  [outputs/current_goal_action/softmin_eval](/Users/linyuxuan/workSpace/GoalFlow/outputs/current_goal_action/softmin_eval)
+
+这些目录是当前 goal-conditioned corrected 主线的权威结果位置。
 
 ## 主要代码入口
 
@@ -191,25 +231,6 @@ scene context -> imitate full trajectory
 - 主评估脚本：[scripts/analysis/evaluate_safesim_dangerous.py](scripts/analysis/evaluate_safesim_dangerous.py)
 - terminal sweep 评估：[scripts/analysis/run_safesim_terminal_sweep_eval.sh](scripts/analysis/run_safesim_terminal_sweep_eval.sh)
 - softmin sweep 评估：[scripts/analysis/run_safesim_softmin_sweep_eval.sh](scripts/analysis/run_safesim_softmin_sweep_eval.sh)
-
-## 不进 Git 的大体积资产
-
-大体积实验资产已经通过 `.gitignore` 排除，建议走网盘、实验室文件服务器或共享盘，而不是提交到 Git 仓库。
-
-建议外部分享的目录：
-
-- [safesim_logs_stage1](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage1)（约 `1.6G`）
-- [safesim_logs_cfg_base](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_cfg_base)（约 `1.4G`）
-- [safesim_logs_stage2_action_goal_imitation](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_action_goal_imitation)（约 `1.7G`）
-- [safesim_logs_stage2_terminal_sweep_goal_action](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_terminal_sweep_goal_action)（约 `75G`，当前最大）
-
-建议提交进 Git 的内容：
-
-- [navsim/agents/goalflow](/Users/linyuxuan/workSpace/GoalFlow/navsim/agents/goalflow) 下的代码
-- [navsim/safesim](/Users/linyuxuan/workSpace/GoalFlow/navsim/safesim) 下的轻量辅助代码
-- [scripts/analysis](/Users/linyuxuan/workSpace/GoalFlow/scripts/analysis) 和 [scripts/training](/Users/linyuxuan/workSpace/GoalFlow/scripts/training) 下的脚本
-- [tests](/Users/linyuxuan/workSpace/GoalFlow/tests) 下的测试
-- [assets/safesim_current](/Users/linyuxuan/workSpace/GoalFlow/assets/safesim_current) 下的小体积 README 图片
 
 ## 环境
 

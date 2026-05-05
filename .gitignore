@@ -35,6 +35,7 @@ navsim.egg-info/
 /download
 /output
 /outputs
+/release_artifacts
 /safesim
 /safesim_logs
 /safesim_logs_*/
