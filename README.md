@@ -162,7 +162,6 @@ fails the protocol gate because physical plausibility remains weak.
 
 ![Best corrected terminal-only examples](assets/safesim_current/terminal_goal_action_best_examples.png)
 
-![Current terminal sweep board](assets/safesim_current/terminal_sweep_board.png)
 
 ### Scenario 5: Goal-conditioned softmin ablation
 
