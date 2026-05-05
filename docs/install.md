@@ -15,11 +15,30 @@ Make sure that the ``navsim_log_path`` and ``sensor_blobs_path`` in ``default_ev
 
 ### 2. Install packages
 
-Firstly, create conda environment with python 3.10 and intall the packages
+Firstly, create a conda environment with Python 3.10 and install the packages.
+
+This repository now maintains two dependency manifests:
+
+- `requirements.txt`: legacy/original GoalFlow paper environment
+- `requirements.safesim-current.txt`: current validated SafeSim corrected-mainline environment
+
+If you are reproducing the corrected SafeSim line, prefer `requirements.safesim-current.txt`.
+
+Legacy / original setup:
 ```bash
 conda create -n goalflow python=3.10
 conda activate goalflow
 pip install -r requirements.txt
+pip install -e nuplan-devkit
+pip install -e .
+```
+
+Corrected SafeSim mainline setup:
+
+```bash
+conda create -n goalflow python=3.10
+conda activate goalflow
+pip install -r requirements.safesim-current.txt
 pip install -e nuplan-devkit
 pip install -e .
 ```

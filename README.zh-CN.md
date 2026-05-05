@@ -213,6 +213,25 @@ scene context -> imitate full trajectory
 
 ## 环境
 
+现在仓库里刻意保留了两套依赖清单：
+
+- [requirements.txt](/Users/linyuxuan/workSpace/GoalFlow/requirements.txt)：原版 GoalFlow / 论文时期环境
+- [requirements.safesim-current.txt](/Users/linyuxuan/workSpace/GoalFlow/requirements.safesim-current.txt)：当前 corrected SafeSim goal-conditioned mainline 的已验证环境快照
+
+如果你要复现当前 corrected SafeSim 主线，优先使用：
+
+```bash
+conda create -n goalflow python=3.10
+conda activate goalflow
+pip install -r requirements.safesim-current.txt
+pip install -e nuplan-devkit
+pip install -e .
+```
+
+如果你要走原版论文工作流，则继续使用 `requirements.txt`。
+
+原版环境安装方式：
+
 ```bash
 conda create -n goalflow python=3.10
 conda activate goalflow

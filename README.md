@@ -224,6 +224,25 @@ Recommended to commit:
 
 ## Environment
 
+Two environment manifests now coexist on purpose:
+
+- [requirements.txt](/Users/linyuxuan/workSpace/GoalFlow/requirements.txt): legacy/original GoalFlow paper-oriented dependency set
+- [requirements.safesim-current.txt](/Users/linyuxuan/workSpace/GoalFlow/requirements.safesim-current.txt): current validated environment snapshot for the corrected SafeSim goal-conditioned mainline
+
+For the corrected SafeSim mainline, prefer:
+
+```bash
+conda create -n goalflow python=3.10
+conda activate goalflow
+pip install -r requirements.safesim-current.txt
+pip install -e nuplan-devkit
+pip install -e .
+```
+
+For the legacy paper workflow, keep using `requirements.txt`.
+
+Legacy setup:
+
 ```bash
 conda create -n goalflow python=3.10
 conda activate goalflow
