@@ -42,9 +42,9 @@ table and kept in the archive.
 |---|---|---|---|---|---:|---:|---:|---|
 | SafeSim Baseline | historical reference | legacy baseline line | no explicit goal token | evaluated (historical reference) | 0.2812 | 0.1562 | 12.9143 | Reference-only snapshot from earlier proxy eval |
 | Stage1 Prior Alignment | transfer reference | `raw_gt` on `original` | no explicit goal token | evaluated (historical reference) | 0.2188 | 0.0781 | 13.4077 | Shows transferred prior before corrected Stage2 |
-| Goal-conditioned Pure Imitation | current valid baseline | `action` | explicit `goal_point` | trained, queued for protocol evaluation | TBD | TBD | TBD | First corrected baseline after bug fixes |
-| Goal-conditioned Terminal Ablation | current valid ablation | `action` | explicit `goal_point` | training completed, protocol evaluation in progress | TBD | TBD | TBD | Current active ablation line |
-| Goal-conditioned Softmin Ablation | next ablation | `action` | explicit `goal_point` | pending automatic launch after terminal base selection | TBD | TBD | TBD | Small-weight sweep on corrected terminal base |
+| Goal-conditioned Pure Imitation | current valid baseline | `action` | explicit `goal_point` | evaluated | 0.4219 | 0.3125 | 9.6171 | Corrected baseline after bug fixes; `gate_pass=False` |
+| Goal-conditioned Terminal Ablation | current valid ablation | `action` | explicit `goal_point` | evaluated | 0.4688 | 0.3125 | 9.2413 | Best terminal-only variant is `xy=0.25, heading=0.05`; `gate_pass=False` |
+| Goal-conditioned Softmin Ablation | current valid ablation | `action` | explicit `goal_point` | evaluated | 0.5156 | 0.3438 | 4.6922 | Best corrected softmin variant is `softmin=0.0025`; `gate_pass=False` |
 
 ## Current Status
 
@@ -56,11 +56,16 @@ This workspace already includes:
 - a completed **goal-conditioned pure imitation** training baseline
 - reorganized documentation with active vs archived separation
 
-This workspace does **not** yet include final ablation conclusions. The remaining required work is:
+The corrected goal-conditioned mainline has now completed:
 
 - formal evaluation of the corrected pure imitation baseline
 - formal evaluation and selection of the goal-conditioned `terminal` sweep
 - follow-up small `softmin` sweep on the selected terminal base
+
+The current limitation is no longer missing experiments. It is model quality:
+
+- the corrected mainline improves dangerous-task metrics
+- but every currently evaluated combination still fails the protocol gates, mainly on `offroad_rate` and/or motion plausibility
 
 This means the repository is currently in a good state for:
 
@@ -96,10 +101,10 @@ Only the lines below should be treated as current and technically valid.
 | Experiment | Purpose | Status | Entry |
 |---|---|---|---|
 | Stage 1 prior alignment | Transfer GoalFlow FM head into SafeSim structured-input training | Completed | [scripts/training/run_safesim_stage1.sh](scripts/training/run_safesim_stage1.sh) |
-| Goal-conditioned pure imitation | Corrected baseline with `target_policy=action` and explicit `goal_point` | Training completed, evaluation pending | [scripts/training/run_safesim_stage2_action_imitation.sh](scripts/training/run_safesim_stage2_action_imitation.sh) |
-| Goal-conditioned terminal sweep | Ablation over `terminal_xy` / `terminal_heading` with corrected setup | Training complete; evaluation now part of the active mainline | [scripts/training/run_safesim_stage2_terminal_sweep.sh](scripts/training/run_safesim_stage2_terminal_sweep.sh) |
-| Goal-conditioned softmin sweep | Planned next step after selecting a terminal base | Not started yet on the corrected mainline | [scripts/training/run_safesim_stage2_softmin_sweep.sh](scripts/training/run_safesim_stage2_softmin_sweep.sh) |
-| Goal-action mainline orchestrator | Finish terminal sweep, run evaluation, choose terminal base, launch softmin sweep | Running | [scripts/training/run_safesim_goal_action_mainline.sh](scripts/training/run_safesim_goal_action_mainline.sh) |
+| Goal-conditioned pure imitation | Corrected baseline with `target_policy=action` and explicit `goal_point` | Trained and evaluated | [scripts/training/run_safesim_stage2_action_imitation.sh](scripts/training/run_safesim_stage2_action_imitation.sh) |
+| Goal-conditioned terminal sweep | Ablation over `terminal_xy` / `terminal_heading` with corrected setup | Trained and evaluated | [scripts/training/run_safesim_stage2_terminal_sweep.sh](scripts/training/run_safesim_stage2_terminal_sweep.sh) |
+| Goal-conditioned softmin sweep | Small-weight sweep on the selected corrected terminal base | Trained and evaluated | [scripts/training/run_safesim_stage2_softmin_sweep.sh](scripts/training/run_safesim_stage2_softmin_sweep.sh) |
+| Goal-action mainline orchestrator | Finish terminal sweep, run evaluation, choose terminal base, launch softmin sweep | Completed | [scripts/training/run_safesim_goal_action_mainline.sh](scripts/training/run_safesim_goal_action_mainline.sh) |
 
 ## Invalidated Historical Experiments
 
@@ -140,22 +145,37 @@ This is the first corrected baseline under:
 - no `terminal`
 - no `softmin`
 
-Training has completed, but formal protocol evaluation is still pending. The
-section is kept here because it is the baseline that all new ablations must be
-compared against.
+This section is now fully evaluated and serves as the corrected baseline that
+all new ablations must be compared against.
+
+![Goal-conditioned pure imitation](assets/safesim_current/pure_imitation_goal_action_examples.png)
 
 ### Scenario 4: Goal-conditioned terminal ablation
 
-This is the currently active ablation family. Terminal training has completed
-and the corrected mainline is now pushing through formal evaluation so it can
-select the terminal base for the next softmin sweep.
+This family is now fully evaluated. The best terminal-only variant is:
+
+- `terminal_xy = 0.25`
+- `terminal_heading = 0.05`
+
+It improves dangerous-task metrics over corrected pure imitation, but still
+fails the protocol gate because physical plausibility remains weak.
+
+![Best corrected terminal-only examples](assets/safesim_current/terminal_goal_action_best_examples.png)
 
 ![Current terminal sweep board](assets/safesim_current/terminal_sweep_board.png)
 
 ### Scenario 5: Goal-conditioned softmin ablation
 
-This is the next planned experiment family. It will start automatically after a
-terminal base is selected from the corrected goal-conditioned line.
+This family is now fully evaluated. The best corrected softmin variant is:
+
+- base terminal: `terminal_xy = 0.25`, `terminal_heading = 0.05`
+- `softmin = 0.0025`
+
+This is the strongest dangerous-task result on the corrected mainline, but it
+still fails the protocol gate, mainly because the trajectory remains too
+aggressive and off-road too often.
+
+![Best corrected softmin examples](assets/safesim_current/softmin_goal_action_best_examples.png)
 
 ## Main Code Entry Points
 

@@ -40,9 +40,9 @@ scene context -> imitate full trajectory
 |---|---|---|---|---|---:|---:|---:|---|
 | SafeSim Baseline | 历史参考 | 旧 baseline 训练线 | 无显式 goal token | 已评估（历史参考） | 0.2812 | 0.1562 | 12.9143 | 早期 proxy 评估留下的参考快照 |
 | Stage1 Prior Alignment | transfer 参考 | `raw_gt` on `original` | 无显式 goal token | 已评估（历史参考） | 0.2188 | 0.0781 | 13.4077 | 展示 corrected Stage2 之前的迁移先验 |
-| Goal-conditioned Pure Imitation | 当前有效 baseline | `action` | 显式 `goal_point` | 已训练，等待正式协议测评 | TBD | TBD | TBD | bug 修复后的第一条干净 baseline |
-| Goal-conditioned Terminal Ablation | 当前有效 ablation | `action` | 显式 `goal_point` | 训练完成，正式测评进行中 | TBD | TBD | TBD | 当前正在推进的主 ablation |
-| Goal-conditioned Softmin Ablation | 下一步 ablation | `action` | 显式 `goal_point` | 待 terminal base 选定后自动开始 | TBD | TBD | TBD | corrected terminal base 上的小权重 sweep |
+| Goal-conditioned Pure Imitation | 当前有效 baseline | `action` | 显式 `goal_point` | 已完成正式测评 | 0.4219 | 0.3125 | 9.6171 | bug 修复后的干净 baseline；`gate_pass=False` |
+| Goal-conditioned Terminal Ablation | 当前有效 ablation | `action` | 显式 `goal_point` | 已完成正式测评 | 0.4688 | 0.3125 | 9.2413 | 最优 terminal-only 为 `xy=0.25, heading=0.05`；`gate_pass=False` |
+| Goal-conditioned Softmin Ablation | 当前有效 ablation | `action` | 显式 `goal_point` | 已完成正式测评 | 0.5156 | 0.3438 | 4.6922 | 最优 corrected softmin 为 `0.0025`；`gate_pass=False` |
 
 ## 当前进展
 
@@ -54,11 +54,16 @@ scene context -> imitate full trajectory
 - **goal-conditioned pure imitation** baseline 训练完成
 - 文档与历史材料分层归档
 
-目前还没有完成：
+当前 corrected goal-conditioned mainline 已经全部跑完：
 
 - 修复后 pure imitation baseline 的正式协议评估
 - 新版 goal-conditioned `terminal` 消融的正式评估与 base 选择
-- 在选定 terminal base 之后的新 `softmin` sweep
+- 在选定 terminal base 之后的新 `softmin` sweep 及其正式评估
+
+当前剩下的主要问题不再是“实验没跑完”，而是模型质量：
+
+- corrected mainline 的危险指标已经明显提升
+- 但所有当前组合都还没有通过协议 gate，主要卡在 `offroad_rate` 和运动合理性
 
 因此，当前仓库已经适合：
 
@@ -94,10 +99,10 @@ scene context -> imitate full trajectory
 | 实验 | 作用 | 状态 | 入口 |
 |---|---|---|---|
 | Stage 1 prior alignment | 将 GoalFlow FM head 迁移到 SafeSim 结构化输入训练 | 已完成 | [scripts/training/run_safesim_stage1.sh](scripts/training/run_safesim_stage1.sh) |
-| Goal-conditioned pure imitation | 使用 `target_policy=action` 和显式 `goal_point` 的修正 baseline | 训练已完成，测评待补 | [scripts/training/run_safesim_stage2_action_imitation.sh](scripts/training/run_safesim_stage2_action_imitation.sh) |
-| Goal-conditioned terminal sweep | 在修正后的设置下扫描 `terminal_xy` / `terminal_heading` | 训练完成，评估已并入当前主线 | [scripts/training/run_safesim_stage2_terminal_sweep.sh](scripts/training/run_safesim_stage2_terminal_sweep.sh) |
-| Goal-conditioned softmin sweep | 在选定 terminal base 后进行 small softmin 扫描 | 修正主线上尚未开始 | [scripts/training/run_safesim_stage2_softmin_sweep.sh](scripts/training/run_safesim_stage2_softmin_sweep.sh) |
-| Goal-action mainline orchestrator | 跑完 terminal、完成评估、选 terminal base、启动 softmin sweep | 正在运行 | [scripts/training/run_safesim_goal_action_mainline.sh](scripts/training/run_safesim_goal_action_mainline.sh) |
+| Goal-conditioned pure imitation | 使用 `target_policy=action` 和显式 `goal_point` 的修正 baseline | 已训练并测评 | [scripts/training/run_safesim_stage2_action_imitation.sh](scripts/training/run_safesim_stage2_action_imitation.sh) |
+| Goal-conditioned terminal sweep | 在修正后的设置下扫描 `terminal_xy` / `terminal_heading` | 已训练并测评 | [scripts/training/run_safesim_stage2_terminal_sweep.sh](scripts/training/run_safesim_stage2_terminal_sweep.sh) |
+| Goal-conditioned softmin sweep | 在选定 terminal base 后进行 small softmin 扫描 | 已训练并测评 | [scripts/training/run_safesim_stage2_softmin_sweep.sh](scripts/training/run_safesim_stage2_softmin_sweep.sh) |
+| Goal-action mainline orchestrator | 跑完 terminal、完成评估、选 terminal base、启动 softmin sweep | 已完成 | [scripts/training/run_safesim_goal_action_mainline.sh](scripts/training/run_safesim_goal_action_mainline.sh) |
 
 ## 已失效的历史实验
 
@@ -134,17 +139,33 @@ scene context -> imitate full trajectory
 - 不加 `terminal`
 - 不加 `softmin`
 
-它的训练已经完成，但正式协议测评还没有补完。所以这一节目前先作为基线说明，后续会补图和指标。
+它的训练和正式协议测评都已经完成，是当前 corrected mainline 的基线。
+
+![Goal-conditioned pure imitation](assets/safesim_current/pure_imitation_goal_action_examples.png)
 
 ### Scenario 4: Goal-conditioned terminal ablation
 
-这是当前正在推进的主 ablation 家族。terminal 训练已经完成，现在 corrected mainline 正在推进正式评估，并准备在评估后选出 terminal base 进入 softmin sweep。
+这一族已经完成正式测评。当前最优的 terminal-only 配置是：
+
+- `terminal_xy = 0.25`
+- `terminal_heading = 0.05`
+
+它比 corrected pure imitation 有更高的危险指标，但仍然没有通过协议 gate。
+
+![Best corrected terminal-only examples](assets/safesim_current/terminal_goal_action_best_examples.png)
 
 ![Current terminal sweep board](assets/safesim_current/terminal_sweep_board.png)
 
 ### Scenario 5: Goal-conditioned softmin ablation
 
-这是下一步计划开展的实验家族。它会在 corrected terminal line 先选出合适的 terminal base 后自动开始。
+这一族也已经完成正式测评。当前最优的 corrected softmin 配置是：
+
+- terminal base: `terminal_xy = 0.25`, `terminal_heading = 0.05`
+- `softmin = 0.0025`
+
+这是 corrected mainline 里危险性最强的一组，但依旧没有通过协议 gate。
+
+![Best corrected softmin examples](assets/safesim_current/softmin_goal_action_best_examples.png)
 
 ## 主要代码入口
 

@@ -131,9 +131,10 @@ scene context -> imitate full trajectory
 |---|---|---|---|---|
 | softmin sweep | 固定 terminal=`0.5/0.1`，扫 small softmin | `action` | [safesim_logs_stage2_softmin_sweep_action](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_softmin_sweep_action) | 已完成训练与评估，但评估需按新 candidate 选择口径重跑 |
 | terminal sweep | 固定 softmin=`0`，扫 terminal | `action` | [safesim_logs_stage2_terminal_sweep_action](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_terminal_sweep_action) | 已完成训练与评估，但评估需按新 candidate 选择口径确认 |
-| goal-conditioned imitation | 显式 `goal_point` + pure imitation | `action` | [safesim_logs_stage2_action_goal_imitation](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_action_goal_imitation) | 训练已完成，等待 corrected mainline 测评 |
-| goal-conditioned terminal sweep | 显式 `goal_point` + terminal sweep | `action` | [safesim_logs_stage2_terminal_sweep_goal_action](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_terminal_sweep_goal_action) | 训练已完成，corrected mainline 正在评估 |
-| goal-action mainline | 统一跑测评、选 best terminal、启动 softmin sweep | `action` | [run_safesim_goal_action_mainline.sh](/Users/linyuxuan/workSpace/GoalFlow/scripts/training/run_safesim_goal_action_mainline.sh) | **当前主线** |
+| goal-conditioned imitation | 显式 `goal_point` + pure imitation | `action` | [safesim_logs_stage2_action_goal_imitation](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_action_goal_imitation) | 已训练并测评 |
+| goal-conditioned terminal sweep | 显式 `goal_point` + terminal sweep | `action` | [safesim_logs_stage2_terminal_sweep_goal_action](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_terminal_sweep_goal_action) | 已训练并测评 |
+| goal-conditioned softmin sweep | 在 best terminal base 上做 small softmin sweep | `action` | [safesim_logs_stage2_softmin_sweep_goal_action](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_softmin_sweep_goal_action) | 已训练并测评 |
+| goal-action mainline | 统一跑测评、选 best terminal、启动 softmin sweep | `action` | [run_safesim_goal_action_mainline.sh](/Users/linyuxuan/workSpace/GoalFlow/scripts/training/run_safesim_goal_action_mainline.sh) | **已完成** |
 
 ---
 
@@ -188,30 +189,27 @@ scene context -> imitate full trajectory
 
 ---
 
-## 当前最重要的在跑实验
+## 当前 corrected mainline 结果
 
-- **Goal-action mainline orchestration**
-  - 主脚本：
-    [run_safesim_goal_action_mainline.sh](/Users/linyuxuan/workSpace/GoalFlow/scripts/training/run_safesim_goal_action_mainline.sh)
-  - 作用：
-    1. 完成 corrected terminal sweep 的剩余恢复流程
-    2. 跑 goal-conditioned pure imitation 的正式协议评估
-    3. 跑 corrected terminal sweep 的正式协议评估
-    4. 选择 best terminal base
-    5. 启动 small softmin sweep
-    6. 跑 softmin sweep 的正式协议评估
+Goal-action mainline orchestration 已经完成。它完成了：
 
-其中 corrected pure imitation baseline 仍然是最关键的基线：
+1. goal-conditioned pure imitation 的正式协议评估
+2. corrected terminal sweep 的正式协议评估
+3. best terminal base 选择
+4. small softmin sweep 训练
+5. softmin sweep 的正式协议评估
 
-- 日志目录：
-  [safesim_logs_stage2_action_goal_imitation](/Users/linyuxuan/workSpace/GoalFlow/safesim_logs_stage2_action_goal_imitation)
+其中 corrected pure imitation baseline 仍然是关键基线：
+
+- 结果目录：
+  [pure_imitation_protocol64](/Users/linyuxuan/workSpace/GoalFlow/outputs/current_goal_action/pure_imitation_protocol64)
 - 配置：
   - `target_policy=action`
   - `use_goal_condition=1`
   - `terminal=0`
   - `softmin=0`
 
-它的作用是回答：
+它回答的是：
 
 > 在不缺 `goal_point` 条件的情况下，pure imitation 本身能不能正常工作。
 
@@ -219,12 +217,47 @@ scene context -> imitate full trajectory
 
 ## 后续建议顺序
 
-1. 先完成并评估 `goal-conditioned pure imitation`
-2. 完成 corrected terminal sweep 的正式评估并选出 best terminal base
-3. 在 best terminal base 上做 small `softmin` sweep
-4. 最后再考虑 `temporal_stride` interaction
+## 当前最佳 corrected 结果
 
-不要再基于旧的无 goal / 坏 target 实验继续扩张。
+### Best terminal-only
+
+- run:
+  [termxy_0p25_termyaw_0p05_protocol64](/Users/linyuxuan/workSpace/GoalFlow/outputs/current_goal_action/terminal_eval/termxy_0p25_termyaw_0p05_protocol64)
+- key metrics:
+  - `dangerous_hit_rate = 0.4688`
+  - `hit@2m = 0.3125`
+  - `pred_min_dist = 9.2413`
+  - `mean_jerk = 21.1557`
+  - `offroad_rate = 0.4844`
+  - `gate_pass = False`
+
+### Best softmin
+
+- run:
+  [softmin_0p0025_protocol64](/Users/linyuxuan/workSpace/GoalFlow/outputs/current_goal_action/softmin_eval/softmin_0p0025_protocol64)
+- key metrics:
+  - `dangerous_hit_rate = 0.5156`
+  - `hit@2m = 0.3438`
+  - `hit@4m = 0.6719`
+  - `pred_min_dist = 4.6922`
+  - `mean_jerk = 29.1909`
+  - `offroad_rate = 0.5625`
+  - `gate_pass = False`
+
+### Main takeaway
+
+- corrected pure imitation 已经成立，不再出现旧主线那种监督错误导致的结论污染
+- terminal-only 能进一步提高 dangerous-task 指标
+- small softmin 能把 dangerous-task 指标继续推高
+- 但当前所有 corrected 组合都还没有通过协议 gate，因此下一步的主要矛盾是**物理合理性**而不是“实验还没跑完”
+
+## 后续建议
+
+1. 不再继续补主线实验缺口，因为 corrected mainline 已完成
+2. 下一轮工作聚焦在：
+   - 更强的物理合理性约束
+   - 或重新定义 goal / control interaction 以降低 off-road 和 jerk
+3. 不要再基于旧的无 goal / 坏 target 实验扩张
 
 ---
 
