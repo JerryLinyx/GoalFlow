@@ -3,15 +3,21 @@
 **/__pycache__/
 .pytest_cache/*
 .pydevproject
+.mypy_cache/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
 
 # IDE
 .vscode/*
 .idea/
+.claude/
 
 # Pip
 *.egg-info
 dist/
 build/
+navsim.egg-info/
 
 # files
 *.log
@@ -19,13 +25,22 @@ build/
 *.jpg
 *.pcd
 *.gif
+*.tmp
 
 # large data & outputs
 /traj_demos
 /pretrained
-/tests
 /data
 /exp
+/download
+/output
+/outputs
+/safesim
+/safesim_logs
+/safesim_logs_*/
+/pdiff_case_120_filtered_best
+/lightning_logs
+/wandb
 *.ckpt
 *.pth
 *.npy
@@ -44,3 +59,6 @@ step4_log.txt
 # environment
 .env
 .env.local
+
+# local reports / scratch files
+PRD.md
